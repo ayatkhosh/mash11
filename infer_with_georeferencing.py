@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
@@ -113,7 +114,13 @@ def run_inference(image_path: Path, model_path: str, conf: float, output_dir: Pa
     for idx in range(len(boxes) if boxes is not None else 0):
         box_xywh = boxes.xywh[idx].cpu().numpy().tolist()
         confidence = float(boxes.conf[idx].cpu().item())
-        mask = masks[idx] if masks is not None and idx < len(masks) else np.zeros(image_rgb.shape[:2], dtype=np.uint8)
+        if masks is None or idx >= len(masks):
+            warnings.warn(
+                f\"Missing segmentation mask for detection index {idx}; using an empty fallback mask.\", RuntimeWarning
+            )
+            mask = np.zeros(image_rgb.shape[:2], dtype=np.uint8)
+        else:
+            mask = masks[idx]
         if mask.shape != image_rgb.shape[:2]:
             mask = cv2.resize(mask, (image_rgb.shape[1], image_rgb.shape[0]), interpolation=cv2.INTER_NEAREST)
         binary = (mask > 0.5).astype(np.uint8)

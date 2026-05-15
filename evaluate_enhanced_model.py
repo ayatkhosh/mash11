@@ -125,10 +125,13 @@ def main() -> None:
     spacenet_merged = yolo_val(args.model, args.spacenet_merged_yaml).__dict__
     fmow_summary = evaluate_fmow_external(args.model, Path(args.fmow_images_dir), args.conf)
 
-    benchmark_gaps = {
-        key: float(spacenet_merged.get(key, 0.0) - PAPER_BENCHMARKS[key])
-        for key in PAPER_BENCHMARKS
-    }
+    benchmark_gaps = {}
+    missing_benchmark_metrics = []
+    for key, benchmark_value in PAPER_BENCHMARKS.items():
+        if key not in spacenet_merged:
+            missing_benchmark_metrics.append(key)
+            continue
+        benchmark_gaps[key] = float(spacenet_merged[key] - benchmark_value)
 
     report = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -136,6 +139,7 @@ def main() -> None:
         "spacenet": {"merged": spacenet_merged, "per_city": per_city},
         "fmow_external": fmow_summary,
         "benchmark_gaps": benchmark_gaps,
+        "missing_benchmark_metrics": missing_benchmark_metrics,
         "data_leakage": {
             "city_split_overlap": city_leakage,
             "status": "pass" if not city_leakage else "fail",
