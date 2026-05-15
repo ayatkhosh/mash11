@@ -126,7 +126,7 @@ def main() -> None:
     fmow_summary = evaluate_fmow_external(args.model, Path(args.fmow_images_dir), args.conf)
 
     benchmark_gaps = {
-        key: float(spacenet_merged[key] - PAPER_BENCHMARKS[key])
+        key: float(spacenet_merged.get(key, 0.0) - PAPER_BENCHMARKS[key])
         for key in PAPER_BENCHMARKS
     }
 

@@ -60,6 +60,7 @@ def split_city_tiles(tile_ids: Sequence[str], city: str, cfg: TrainConfig) -> Di
     n = len(ids)
     n_train = int(n * cfg.train_ratio)
     n_val = int(n * cfg.val_ratio)
+    # Use remainder for test to guarantee full coverage and preserve exclusivity.
     n_test = n - n_train - n_val
 
     train_ids = ids[:n_train]
@@ -244,7 +245,7 @@ def run_training(args: argparse.Namespace) -> None:
         if city_best_ckpt is None or city_best_summary is None:
             raise RuntimeError(f"Failed to evaluate checkpoints for city '{city}'")
 
-        summary = dict(city_best_summary)
+        summary = city_best_summary.copy()
         summary["best_checkpoint"] = str(city_best_ckpt)
         per_city_metrics[city] = summary
         shutil.copy2(city_best_ckpt, out_dir / f"best_{city}.pt")

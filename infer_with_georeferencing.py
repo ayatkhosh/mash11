@@ -29,6 +29,7 @@ def classify_building_type(footprint_area_m2: float) -> str:
 
 def contour_polygon(mask: "np.ndarray") -> List[Tuple[float, float]]:
     import cv2
+    import numpy as np
 
     contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
@@ -104,7 +105,7 @@ def run_inference(image_path: Path, model_path: str, conf: float, output_dir: Pa
     result = model.predict(str(image_path), conf=conf, verbose=False)[0]
 
     boxes = result.boxes
-    masks = result.masks.data.cpu().numpy() if result.masks is not None else []
+    masks = result.masks.data.cpu().numpy() if result.masks is not None else None
 
     vis = image_rgb.copy()
     buildings: List[Dict[str, object]] = []
@@ -112,7 +113,7 @@ def run_inference(image_path: Path, model_path: str, conf: float, output_dir: Pa
     for idx in range(len(boxes) if boxes is not None else 0):
         box_xywh = boxes.xywh[idx].cpu().numpy().tolist()
         confidence = float(boxes.conf[idx].cpu().item())
-        mask = masks[idx] if idx < len(masks) else np.zeros(image_rgb.shape[:2], dtype=np.uint8)
+        mask = masks[idx] if masks is not None and idx < len(masks) else np.zeros(image_rgb.shape[:2], dtype=np.uint8)
         if mask.shape != image_rgb.shape[:2]:
             mask = cv2.resize(mask, (image_rgb.shape[1], image_rgb.shape[0]), interpolation=cv2.INTER_NEAREST)
         binary = (mask > 0.5).astype(np.uint8)
