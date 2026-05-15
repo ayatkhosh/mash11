@@ -1,0 +1,15 @@
+architecture: YOLOv8-seg
+backbone: yolov8m
+task: instance-segmentation
+num_classes: 1
+classes:
+  0: building
+postprocessing:
+  georeference_output: true
+  export_geojson: true
+  export_json_metadata: true
+classification:
+  enabled: true
+  labels:
+    - residential
+    - non-residential

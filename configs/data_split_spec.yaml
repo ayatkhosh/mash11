@@ -1,0 +1,27 @@
+version: 1
+seed_strategy: sha256(city_name + base_seed)
+base_seed: 2024
+cities:
+  Vegas:
+    train: []
+    val: []
+    test: []
+  Paris:
+    train: []
+    val: []
+    test: []
+  Shanghai:
+    train: []
+    val: []
+    test: []
+  Khartoum:
+    train: []
+    val: []
+    test: []
+  Rio:
+    train: []
+    val: []
+    test: []
+leakage_checks:
+  - mutually_exclusive_splits
+  - sha256_hash_cross_check
