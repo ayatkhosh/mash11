@@ -1,0 +1,34 @@
+model: yolov8m-seg
+cities:
+  - Vegas
+  - Paris
+  - Shanghai
+  - Khartoum
+  - Rio
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+training:
+  epochs: 50
+  freeze_backbone_epochs: 3
+  freeze_layers: 10
+  checkpoint_every_n_epochs: 5
+  optimizer: AdamW
+  lr0: 0.0003
+  lrf: 0.01
+  cos_lr: true
+  batch: 8
+  imgsz: 640
+regularization:
+  dropout: 0.1
+  weight_decay: 0.0005
+augmentation:
+  mosaic: 0.7
+  close_mosaic_epoch: 40
+  copy_paste: 0.1
+evaluation_targets:
+  precision: 0.944
+  recall: 0.892
+  map50: 0.945
+  fmow_map50: 0.85
