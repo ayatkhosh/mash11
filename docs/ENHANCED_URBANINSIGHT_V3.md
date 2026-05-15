@@ -31,9 +31,9 @@
 ## Usage
 
 ```bash
-python /home/runner/work/mash11/mash11/train_urbaninsight_v3_enhanced.py --help
-python /home/runner/work/mash11/mash11/infer_with_georeferencing.py --help
-python /home/runner/work/mash11/mash11/evaluate_enhanced_model.py --help
+python train_urbaninsight_v3_enhanced.py --help
+python infer_with_georeferencing.py --help
+python evaluate_enhanced_model.py --help
 ```
 
 ## Notes on Khatua et al. alignment

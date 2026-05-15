@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
+RESIDENTIAL_AREA_THRESHOLD_M2 = 600.0
+
 
 def encode_mask(mask) -> str:
     import cv2
@@ -22,10 +24,10 @@ def encode_mask(mask) -> str:
 
 
 def classify_building_type(footprint_area_m2: float) -> str:
-    return "residential" if footprint_area_m2 < 600.0 else "non-residential"
+    return "residential" if footprint_area_m2 < RESIDENTIAL_AREA_THRESHOLD_M2 else "non-residential"
 
 
-def contour_polygon(mask: np.ndarray) -> List[Tuple[float, float]]:
+def contour_polygon(mask: "np.ndarray") -> List[Tuple[float, float]]:
     import cv2
 
     contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

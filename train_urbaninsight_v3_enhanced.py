@@ -15,8 +15,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, MutableMapping, Sequence, Tuple
 
+from pipeline_utils import hash_file
+
 
 CITY_NAMES = ("Vegas", "Paris", "Shanghai", "Khartoum", "Rio")
+RATIO_SUM_TOLERANCE = 1e-9
 
 
 @dataclass(frozen=True)
@@ -47,7 +50,7 @@ def stable_city_seed(city: str, base_seed: int = 2024) -> int:
 
 
 def split_city_tiles(tile_ids: Sequence[str], city: str, cfg: TrainConfig) -> Dict[str, List[str]]:
-    if abs((cfg.train_ratio + cfg.val_ratio + cfg.test_ratio) - 1.0) > 1e-9:
+    if abs((cfg.train_ratio + cfg.val_ratio + cfg.test_ratio) - 1.0) > RATIO_SUM_TOLERANCE:
         raise ValueError("train/val/test ratios must sum to 1.0")
 
     ids = list(tile_ids)
@@ -80,17 +83,6 @@ def verify_zero_data_leakage(city_splits: Mapping[str, Mapping[str, Sequence[str
         non_empty = {k: sorted(v)[:5] for k, v in overlaps.items() if v}
         if non_empty:
             raise ValueError(f"Data leakage detected for city '{city}': {non_empty}")
-
-
-def hash_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        while True:
-            chunk = f.read(chunk_size)
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def detect_hash_leakage(split_to_files: Mapping[str, Iterable[Path]]) -> Dict[str, Dict[str, List[str]]]:
@@ -227,18 +219,35 @@ def run_training(args: argparse.Namespace) -> None:
     shutil.copy2(best_pt, final_merged)
 
     per_city_metrics: Dict[str, Dict[str, float]] = {}
+    epoch_candidates = sorted(weights_dir.glob("epoch*.pt"))
+    checkpoint_candidates = epoch_candidates if epoch_candidates else [best_pt]
     for city, city_yaml in json.loads(Path(args.city_val_yamls_json).read_text(encoding="utf-8")).items():
-        metrics = phase2_model.val(data=city_yaml)
-        summary = {
-            "precision": float(metrics.box.mp),
-            "recall": float(metrics.box.mr),
-            "map50": float(metrics.box.map50),
-            "map50_95": float(metrics.box.map),
-            "seg_map50": float(metrics.seg.map50),
-            "seg_map50_95": float(metrics.seg.map),
-        }
+        city_best_ckpt = None
+        city_best_summary = None
+        city_best_score = -1.0
+        for candidate in checkpoint_candidates:
+            city_model = YOLO(str(candidate))
+            metrics = city_model.val(data=city_yaml)
+            summary = {
+                "precision": float(metrics.box.mp),
+                "recall": float(metrics.box.mr),
+                "map50": float(metrics.box.map50),
+                "map50_95": float(metrics.box.map),
+                "seg_map50": float(metrics.seg.map50),
+                "seg_map50_95": float(metrics.seg.map),
+            }
+            if summary["seg_map50"] > city_best_score:
+                city_best_score = summary["seg_map50"]
+                city_best_ckpt = candidate
+                city_best_summary = summary
+
+        if city_best_ckpt is None or city_best_summary is None:
+            raise RuntimeError(f"Failed to evaluate checkpoints for city '{city}'")
+
+        summary = dict(city_best_summary)
+        summary["best_checkpoint"] = str(city_best_ckpt)
         per_city_metrics[city] = summary
-        shutil.copy2(best_pt, out_dir / f"best_{city}.pt")
+        shutil.copy2(city_best_ckpt, out_dir / f"best_{city}.pt")
 
     run_meta["per_city_metrics"] = per_city_metrics
     run_meta["final_model"] = str(final_merged)

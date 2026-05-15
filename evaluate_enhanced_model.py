@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence
+
+from pipeline_utils import hash_file
 
 
 PAPER_BENCHMARKS = {"precision": 0.944, "recall": 0.892, "map50": 0.945}
@@ -24,17 +25,6 @@ class DatasetEvalResult:
     map50_95: float
     seg_map50: float
     seg_map50_95: float
-
-
-def hash_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as f:
-        while True:
-            chunk = f.read(chunk_size)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def verify_city_split_isolation(split_spec: Mapping[str, Mapping[str, Sequence[str]]]) -> Dict[str, Dict[str, List[str]]]:
